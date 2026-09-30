@@ -1,0 +1,314 @@
+//package archive
+//
+//import (
+//	"encoding/json"
+//	"errors"
+//	"fmt"
+//	"image/jpeg"
+//	"io"
+//	"io/fs"
+//	"log"
+//	"math"
+//	"os"
+//	"strings"
+//	"sync"
+//
+//	"github.com/kolesa-team/go-webp/encoder"
+//	"github.com/kolesa-team/go-webp/webp"
+//	"github.com/rwcarlsen/goexif/exif"
+//)
+//
+//type ExifDataRecieved struct {
+//	//take a wild guess what this means
+//	FileName string `json:"FileName"`
+//
+//	//make and model of camera
+//	MakeModel string `json:"LensModel"`
+//	//Model string `json:"model"`
+//
+//	//Lens
+//	Lens string `json:"LensMake"`
+//	//LensModel       string `json:"lensModel"`
+//	ImageDimensions ImageDimensionsStruct `json:"ImageDimensions"`
+//	//PixelYDimension int64  `json:"PixelYDimension"`
+//
+//	//Picture stuff
+//	ExposureTime    string  `json:"ExposureTime"`    // [string]
+//	FStopValue      float64 `json:"ApertureValue"`   // [string]
+//	ISOSpeedRatings int64   `json:"ISOSpeedRatings"` // [int]
+//}
+//
+//type ImageDimensionsStruct struct {
+//	X int64
+//	Y int64
+//}
+//
+//// https://paulbradley.org/parse-exif-go/
+//
+//// path: the absolute path to the files
+//func imageManipulator(path string) {
+//	// I guess this is where it starts off from?
+//	myFs := os.DirFS(".")
+//	entries, err := fs.ReadDir(myFs, path)
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	var exifDataEntries [][]byte
+//
+//	var waitGroup sync.WaitGroup
+//	var mutex sync.Mutex
+//
+//	for index, entry := range entries {
+//		if entry.IsDir() {
+//			fmt.Println(entry.Name(), index, "DIRECTORY")
+//			continue
+//		}
+//		waitGroup.Add(1)
+//		//adds to async group
+//		waitGroup.Go(func() {
+//			defer waitGroup.Done()
+//			result := processImage(entry.Name(), path)
+//			mutex.Lock()
+//			exifDataEntries = append(exifDataEntries, result)
+//			mutex.Unlock()
+//		})
+//	}
+//	waitGroup.Wait()
+//	fmt.Printf("Exif: %s\n", exifDataEntries)
+//
+//	finalJson := func() []byte {
+//		raw := make([]json.RawMessage, len(exifDataEntries))
+//		for i, b := range exifDataEntries {
+//			raw[i] = b
+//		}
+//		jsonMarshal, _ := json.MarshalIndent(raw, "", "\t")
+//		if err != nil {
+//			log.Fatal(err)
+//		}
+//		return jsonMarshal
+//	}()
+//
+//	jsonFile := path + "/output/" + "output_exif_data" + ".json"
+//
+//	//output, err := os.Create(jsonFile)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	err = os.WriteFile(jsonFile, finalJson, 0644)
+//	if err != nil {
+//		return
+//	}
+//
+//}
+//
+//func processImage(entryName string, path string) []byte {
+//	fmt.Println("Processing " + entryName)
+//	//open the file
+//
+//	imageFile, err := os.Open(path + "/" + entryName)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	exifData, err := getExifData(entryName, imageFile)
+//
+//	//rewinds the cursor so the image can decode proberly
+//	if _, err := imageFile.Seek(0, io.SeekStart); err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	imageToWEBP(path, entryName, imageFile)
+//	err = imageFile.Close()
+//	if err != nil {
+//		return nil
+//	}
+//
+//	exifJson, err := json.Marshal(exifData)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	fmt.Println("Done Processing " + entryName)
+//
+//	return exifJson
+//}
+//func imageToWEBP(path string, filename string, image *os.File) {
+//	decodedJpeg, err := jpeg.Decode(image)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	output, err := os.Create(path + "/output/" + filename + ".webp")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	defer func(output *os.File) {
+//		err := output.Close()
+//		if err != nil {
+//
+//		}
+//	}(output)
+//
+//	options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 10)
+//	if err != nil {
+//		log.Fatalln(err)
+//	}
+//
+//	if err := webp.Encode(output, decodedJpeg, options); err != nil {
+//		log.Fatalln(err)
+//	}
+//
+//}
+//
+//// library info: https://github.com/rwcarlsen/goexif
+//func getExifData(imageName string, imageFile *os.File) (ExifDataRecieved, error) {
+//	//initialise empty struct
+//	var exifData ExifDataRecieved
+//
+//	//get the exif data class from image file
+//	exifMetadata, err := exif.Decode(imageFile)
+//	if exifMetadata == nil {
+//		return ExifDataRecieved{}, errors.New("no EXIF Metadata @" + imageFile.Name())
+//	}
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	//convert the exif data class to JSON. Using the json.marshal (convert data -> JSON)
+//	//exifJson, err := exifMetadata.MarshalJSON()
+//
+//	// Uniquly: don't return empty string if unknown, as camera model is important to know
+//
+//	exifData.FileName = imageName
+//
+//	exifData.MakeModel = func() string {
+//		var MakeStr string
+//		Make, err := exifMetadata.Get(exif.Make)
+//		if err != nil {
+//			MakeStr = "Unknown"
+//		} else {
+//			MakeStr, err = Make.StringVal()
+//			if err != nil {
+//				MakeStr = "Unknown"
+//			}
+//		}
+//		var ModelStr string
+//		Model, err := exifMetadata.Get(exif.Model)
+//		if err != nil {
+//			ModelStr = "Unknown"
+//		} else {
+//			ModelStr, err = Model.StringVal()
+//			if err != nil {
+//				ModelStr = "Unknown"
+//			}
+//		}
+//
+//		if MakeStr == "Unknown" || ModelStr == "Unknown" {
+//			return "Unknown"
+//		}
+//
+//		return MakeStr + " " + ModelStr
+//
+//	}()
+//
+//	exifData.Lens = func() string {
+//		var LensMake string
+//		Make, err := exifMetadata.Get(exif.LensMake)
+//		if err != nil {
+//			LensMake = ""
+//		} else {
+//			LensMake, err = Make.StringVal()
+//			if err != nil {
+//				LensMake = ""
+//			}
+//		}
+//		var LensModel string
+//		Model, err := exifMetadata.Get(exif.LensModel)
+//		if err != nil {
+//			LensModel = ""
+//		} else {
+//			LensModel, err = Model.StringVal()
+//			if err != nil {
+//				LensModel = ""
+//			}
+//		}
+//
+//		if LensMake == "" || LensModel == "" {
+//			return ""
+//		}
+//
+//		LensMake = strings.TrimSpace(LensMake)
+//		LensModel = strings.TrimSpace(LensModel)
+//
+//		//Check if the lens make contains the model name already (i.e, Sigma 400 doesn't need to be called Sigma Sigma 400)
+//		if strings.Contains(strings.ToLower(LensModel), strings.ToLower(LensMake)) {
+//			return LensModel
+//		}
+//		return LensMake + " " + LensModel
+//
+//	}()
+//
+//	exifData.ImageDimensions = func() ImageDimensionsStruct {
+//		var ImagesDimension ImageDimensionsStruct
+//
+//		PixelXDimensionTiff, err1 := exifMetadata.Get(exif.PixelXDimension)
+//		PixelYDimensionTiff, err2 := exifMetadata.Get(exif.PixelYDimension)
+//
+//		if err1 != nil || err2 != nil {
+//			return ImageDimensionsStruct{X: int64(math.NaN()), Y: int64(math.NaN())}
+//		}
+//
+//		PixelXDimension, err1 := PixelXDimensionTiff.Int64(0)
+//		PixelYDimension, err2 := PixelYDimensionTiff.Int64(0)
+//
+//		if err1 != nil || err2 != nil {
+//			return ImageDimensionsStruct{X: int64(math.NaN()), Y: int64(math.NaN())}
+//		}
+//
+//		ImagesDimension.X = PixelXDimension
+//		ImagesDimension.Y = PixelYDimension
+//
+//		return ImagesDimension
+//	}()
+//
+//	exifData.ExposureTime = func() string {
+//		ExposureTiff, err := exifMetadata.Get(exif.ExposureTime)
+//		if err != nil {
+//			return ""
+//		}
+//		ExposureTimeNumerator, ExposureTimeDenominator, err := ExposureTiff.Rat2(0) // retrieve first (hopefully only...) value from list
+//		if ExposureTimeNumerator == 0 || ExposureTimeDenominator == 0 || err != nil {
+//			return ""
+//		}
+//		top := float64(ExposureTimeNumerator) / float64(ExposureTimeNumerator)
+//		bottom := float64(ExposureTimeDenominator) / float64(ExposureTimeNumerator)
+//		return fmt.Sprint(top) + "/" + fmt.Sprint(bottom)
+//	}()
+//
+//	exifData.FStopValue = func() float64 {
+//		FStopTiff, err := exifMetadata.Get(exif.FNumber)
+//		if err != nil {
+//			return math.NaN()
+//		}
+//		FStopNumerator, FStopDenominator, err := FStopTiff.Rat2(0) // retrieve first (hopefully only...) value from list
+//		if FStopNumerator == 0 || FStopDenominator == 0 || err != nil {
+//			return math.NaN()
+//		}
+//		return float64(FStopNumerator) / float64(FStopDenominator)
+//	}()
+//
+//	exifData.ISOSpeedRatings = func() int64 {
+//		ISOSpeedTiff, _ := exifMetadata.Get(exif.ISOSpeedRatings)
+//		if err != nil {
+//			return int64(math.NaN())
+//		}
+//		ISOValue, _ := ISOSpeedTiff.Int64(0)
+//		if err != nil {
+//			return int64(math.NaN())
+//		}
+//		return ISOValue
+//	}()
+//
+//	return exifData, nil
+//}

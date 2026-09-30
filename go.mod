@@ -1,4 +1,4 @@
-module flagmaster.me.toolkitGoLang
+module github.com/Agutavian/flagmaster.me.toolkitGoLang.lib
 
 go 1.26
 

@@ -1,0 +1,169 @@
+{
+  "ApertureValue": [
+    "400/100"
+  ],
+  "Artist": "LoMa                                                                                                                                                                                                                                                           ",
+  "BrightnessValue": [
+    "465/100"
+  ],
+  "ColorSpace": [
+    1
+  ],
+  "ComponentsConfiguration": "",
+  "CompressedBitsPerPixel": [
+    "48/10"
+  ],
+  "Copyright": "flag@thundermail.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ",
+  "CustomRendered": [
+    0
+  ],
+  "DateTime": "2026:08:23 18:16:06",
+  "DateTimeDigitized": "2026:08:23 18:16:06",
+  "DateTimeOriginal": "2026:08:23 18:16:06",
+  "ExifIFDPointer": [
+    1136
+  ],
+  "ExifVersion": "0232",
+  "ExposureBiasValue": [
+    "-133/100"
+  ],
+  "ExposureMode": [
+    0
+  ],
+  "ExposureProgram": [
+    2
+  ],
+  "ExposureTime": [
+    "10/2000"
+  ],
+  "FNumber": [
+    "400/100"
+  ],
+  "FileSource": "",
+  "Flash": [
+    0
+  ],
+  "FlashpixVersion": "0100",
+  "FocalLength": [
+    "8000/100"
+  ],
+  "FocalLengthIn35mmFilm": [
+    120
+  ],
+  "FocalPlaneResolutionUnit": [
+    3
+  ],
+  "FocalPlaneXResolution": [
+    "3289/1"
+  ],
+  "FocalPlaneYResolution": [
+    "3289/1"
+  ],
+  "GPSAltitude": [
+    "38700/100"
+  ],
+  "GPSAltitudeRef": [
+    0
+  ],
+  "GPSDateStamp": "2026:08:23",
+  "GPSInfoIFDPointer": [
+    3606
+  ],
+  "GPSLatitude": [
+    "49/1",
+    "12/1",
+    "54573/1000"
+  ],
+  "GPSLatitudeRef": "N",
+  "GPSLongitude": [
+    "5/1",
+    "25/1",
+    "25166/1000"
+  ],
+  "GPSLongitudeRef": "E",
+  "GPSMapDatum": "WGS-84",
+  "GPSSpeed": [
+    "3600/10"
+  ],
+  "GPSSpeedRef": "K",
+  "GPSTimeStamp": [
+    "16/1",
+    "15/1",
+    "59/1"
+  ],
+  "GPSVersionID": [
+    2,
+    3,
+    0,
+    0
+  ],
+  "ISOSpeedRatings": [
+    320
+  ],
+  "InteroperabilityIFDPointer": [
+    3576
+  ],
+  "InteroperabilityIndex": "R98",
+  "LensMake": "FUJIFILM",
+  "LensModel": "XF16-80mmF4 R OIS WR",
+  "LightSource": [
+    0
+  ],
+  "Make": "FUJIFILM",
+  "MakerNote": "",
+  "MaxApertureValue": [
+    "400/100"
+  ],
+  "MeteringMode": [
+    5
+  ],
+  "Model": "X-T5",
+  "Orientation": [
+    1
+  ],
+  "PixelXDimension": [
+    7728
+  ],
+  "PixelYDimension": [
+    5152
+  ],
+  "ResolutionUnit": [
+    2
+  ],
+  "SceneCaptureType": [
+    0
+  ],
+  "SceneType": "",
+  "SensingMethod": [
+    2
+  ],
+  "Sharpness": [
+    0
+  ],
+  "ShutterSpeedValue": [
+    "767/100"
+  ],
+  "Software": "Digital Camera X-T5 Ver4.31",
+  "SubjectDistanceRange": [
+    0
+  ],
+  "ThumbJPEGInterchangeFormat": [
+    4260
+  ],
+  "ThumbJPEGInterchangeFormatLength": [
+    7984
+  ],
+  "UserComment": "                                                                                                                                                                                                                                                        ",
+  "WhiteBalance": [
+    1
+  ],
+  "XResolution": [
+    "72/1"
+  ],
+  "YCbCrPositioning": [
+    2
+  ],
+  "YResolution": [
+    "72/1"
+  ]
+}

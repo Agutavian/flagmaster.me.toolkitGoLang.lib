@@ -1,4 +1,4 @@
-package imageManipulator
+package imagemanipulator
 
 import (
 	"encoding/json"

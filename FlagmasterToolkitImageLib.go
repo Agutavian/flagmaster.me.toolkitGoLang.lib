@@ -23,6 +23,7 @@ import (
 // The app's namespace for XMP data
 const nsMyApp = "https://flagmaster.me"
 
+// ExifDataReceived Exif struct
 type ExifDataReceived struct {
 	//take a wild guess what this means
 	FileName string `json:"FileName"`

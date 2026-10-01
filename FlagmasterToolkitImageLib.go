@@ -1,4 +1,4 @@
-package imagemanipulator
+package FlagmasterToolkitImageManipulatorLib
 
 import (
 	"encoding/json"
@@ -20,7 +20,8 @@ import (
 	//"github.com/rwcarlsen/goexif/exif"
 )
 
-const nsMyApp = "https://flagmaster.me" // your own namespace URI
+// The app's namespace for XMP data
+const nsMyApp = "https://flagmaster.me"
 
 type ExifDataReceived struct {
 	//take a wild guess what this means
@@ -47,8 +48,8 @@ type ImageDimensionsStruct struct {
 	Y uint32
 }
 
-// path: the absolute path to the files
-func imageManipulator(path string) {
+// ImageManipulator path: the absolute path to the files
+func ImageManipulator(path string) {
 	// I guess this is where it starts off from?
 	myFs := os.DirFS(".")
 	entries, err := fs.ReadDir(myFs, path)
@@ -70,7 +71,7 @@ func imageManipulator(path string) {
 		//adds to async group
 		waitGroup.Go(func() {
 			defer waitGroup.Done()
-			result := processImage(entry.Name(), path)
+			result := ProcessImageToWebP(entry.Name(), path)
 			mutex.Lock()
 			exifDataEntries = append(exifDataEntries, result)
 			mutex.Unlock()
@@ -105,7 +106,9 @@ func imageManipulator(path string) {
 
 }
 
-func processImage(entryName string, path string) []byte {
+// ProcessImageToWebP
+// Path is where the image should be outputted. Will append /output/ to the path.
+func ProcessImageToWebP(entryName string, path string) []byte {
 	fmt.Println("Processing " + entryName)
 	//open the file
 
@@ -114,7 +117,7 @@ func processImage(entryName string, path string) []byte {
 	if err != nil {
 		log.Fatal(err)
 	}
-	exifData, err := getExifData(entryName, imagePath, imageFile)
+	exifData, err := GetExifData(entryName, imagePath, imageFile)
 
 	//rewinds the cursor so the image can decode proberly
 	if _, err := imageFile.Seek(0, io.SeekStart); err != nil {
@@ -184,7 +187,9 @@ func imageToWEBP(path string, filename string, image *os.File) {
 }
 
 // library info: https://github.com/FlavioCFOliveira/GoMetadata
-func getExifData(imageName string, imagePath string, imageFile *os.File) (ExifDataReceived, error) {
+
+// GetExifData Returns ExifData for the image in the path. FIle is opened file already
+func GetExifData(imageName string, imagePath string, imageFile *os.File) (ExifDataReceived, error) {
 	//initialise empty struct
 	var exifData ExifDataReceived
 
@@ -324,8 +329,9 @@ func getExifData(imageName string, imagePath string, imageFile *os.File) (ExifDa
 	return exifData, nil
 }
 
+// AddImageCategory : Add a category to the XMP data of image
 // ImagePath is the absolute path to the image. Category Name is the category you want to name
-func addImageCategory(imagePath string, categoryName string) error {
+func AddImageCategory(imagePath string, categoryName string) error {
 	metadata, err := gometadata.ReadFile(imagePath)
 
 	if err != nil {
@@ -344,8 +350,9 @@ func addImageCategory(imagePath string, categoryName string) error {
 	return nil
 }
 
+// RemoveImageCategory : Remove a category to the XMP data of image
 // Removes the image category from an image
-func removeImageCategory(imagePath string) error {
+func RemoveImageCategory(imagePath string) error {
 	metadata, err := gometadata.ReadFile(imagePath)
 
 	if err != nil {
@@ -363,13 +370,14 @@ func removeImageCategory(imagePath string) error {
 	return nil
 }
 
-func getImageCategory(imagePath string) (string, error) {
+// GetImageCategory returns the image category string and a possible error. Blank/no category will return empty string ""
+func GetImageCategory(imagePath string) (string, error) {
 	metadata, err := gometadata.ReadFile(imagePath)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	if metadata.XMP == nil {
-		return "", errors.New("no XMP metadata")
+		return "", nil
 	}
 
 	categoryName := metadata.XMP.Get(nsMyApp, "Category")

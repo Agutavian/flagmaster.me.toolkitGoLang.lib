@@ -50,10 +50,24 @@ type ImageDimensionsStruct struct {
 }
 
 // ImageManipulator path: the absolute path to the files
-func ImageManipulator(path string) {
+//
+// Params:
+//
+// imagesPath: where the images to be processed should be
+//
+// jsonOutputPath: where the JSON should be outputted to.
+//
+// jsonFileName: JSON File name. Recommended to include ".json" at the end
+//
+// INFO:
+//
+// Function implements GoRoutines to loop through images and process them.
+// Personal note: Returns JSON rather than creating it because this doesn't implement categories
+// func ImageManipulator(imagesPath string, jsonOutputPath string, jsonFileName string) error {
+func ImageManipulator(imagesPath string, jsonOutputPath string, jsonFileName string) error {
 	// I guess this is where it starts off from?
 	myFs := os.DirFS(".")
-	entries, err := fs.ReadDir(myFs, path)
+	entries, err := fs.ReadDir(myFs, imagesPath)
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +86,7 @@ func ImageManipulator(path string) {
 		//adds to async group
 		waitGroup.Go(func() {
 			defer waitGroup.Done()
-			result := ProcessImageToWebP(entry.Name(), path)
+			result := ProcessImageToWebP(entry.Name(), imagesPath)
 			mutex.Lock()
 			exifDataEntries = append(exifDataEntries, result)
 			mutex.Unlock()
@@ -81,30 +95,34 @@ func ImageManipulator(path string) {
 	waitGroup.Wait()
 	fmt.Printf("Exif making sure: %s\n", exifDataEntries)
 
-	finalJson := func() []byte {
+	finalJson, err := func() ([]byte, error) {
 		raw := make([]json.RawMessage, len(exifDataEntries))
 		for i, b := range exifDataEntries {
 			raw[i] = b
 		}
 		jsonMarshal, _ := json.MarshalIndent(raw, "", "\t")
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
-		return jsonMarshal
+		return jsonMarshal, nil
 	}()
+	if err != nil {
+		return err
+	}
 
-	jsonFile := path + "/output/" + "output_exif_data" + ".json"
+	jsonFile := jsonOutputPath + jsonFileName
 
 	//output, err := os.Create(jsonFile)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err = os.WriteFile(jsonFile, finalJson, 0644)
 	if err != nil {
-		return
+		return err
 	}
 
+	return nil
 }
 
 // ProcessImageToWebP

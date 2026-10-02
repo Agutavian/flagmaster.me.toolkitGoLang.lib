@@ -59,12 +59,18 @@ type ImageDimensionsStruct struct {
 //
 // jsonFileName: JSON File name. Recommended to include ".json" at the end
 //
+// Return:
+//
+// []byte: Final JSON as bytes (already marshalled). Nil if error
+// error: Error if applicable, nil otherwise
+//
 // INFO:
 //
 // Function implements GoRoutines to loop through images and process them.
 // Personal note: Returns JSON rather than creating it because this doesn't implement categories
-// func ImageManipulator(imagesPath string, jsonOutputPath string, jsonFileName string) error {
-func ImageManipulator(imagesPath string, jsonOutputPath string, jsonFileName string) error {
+//
+// TODO: Make it so that the JSON is with the maps
+func ImageManipulator(imagesPath string, imageMap map[string][]string) ([]byte, error) {
 	// I guess this is where it starts off from?
 	myFs := os.DirFS(".")
 	entries, err := fs.ReadDir(myFs, imagesPath)
@@ -72,7 +78,7 @@ func ImageManipulator(imagesPath string, jsonOutputPath string, jsonFileName str
 		panic(err)
 	}
 
-	var exifDataEntries [][]byte
+	var exifDataEntries []ExifDataReceived
 
 	var waitGroup sync.WaitGroup
 	var mutex sync.Mutex
@@ -86,48 +92,76 @@ func ImageManipulator(imagesPath string, jsonOutputPath string, jsonFileName str
 		//adds to async group
 		waitGroup.Go(func() {
 			defer waitGroup.Done()
-			result := ProcessImageToWebP(entry.Name(), imagesPath)
+			result := ProcessImage(entry.Name(), imagesPath)
 			mutex.Lock()
 			exifDataEntries = append(exifDataEntries, result)
 			mutex.Unlock()
 		})
 	}
 	waitGroup.Wait()
-	fmt.Printf("Exif making sure: %s\n", exifDataEntries)
+	fmt.Printf("Exif making sure: %#v\n", exifDataEntries)
 
-	finalJson, err := func() ([]byte, error) {
-		raw := make([]json.RawMessage, len(exifDataEntries))
-		for i, b := range exifDataEntries {
-			raw[i] = b
-		}
-		jsonMarshal, _ := json.MarshalIndent(raw, "", "\t")
-		if err != nil {
-			return nil, err
-		}
-		return jsonMarshal, nil
-	}()
-	if err != nil {
-		return err
-	}
+	finalJson, err := _jsonFinalCompiler(imageMap, exifDataEntries)
 
-	jsonFile := jsonOutputPath + jsonFileName
+	//jsonFile := jsonOutputPath + jsonFileName
 
 	//output, err := os.Create(jsonFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = os.WriteFile(jsonFile, finalJson, 0644)
+	return finalJson, nil
+}
+
+// TODO: DO JSON WORK
+// imageMap is a list of the categories with the image names associated with them
+// exifDataEntries is the list of already-compiled ExifDataReceived structs
+func _jsonFinalCompiler(imageMap map[string][]string, exifDataEntries []ExifDataReceived) ([]byte, error) {
+
+	finalJson, err := func() ([]byte, error) {
+		exifMap := make(map[string][]ExifDataReceived)
+
+		//raw := make([]json.RawMessage, len(exifDataEntries))
+		//Loop through all categories
+		for category, listOfImagesInCategory := range imageMap {
+
+			// Loop through all the images in the category
+			//TODO: CHECK IF THIS LOOP EXIF PART WORKS
+			for _, imageName := range listOfImagesInCategory {
+				//Get the exif data for this image specifically
+				imageEXIF := func(imageName string) ExifDataReceived {
+					// loop through all exifDataEntries
+					for _, imageExifData := range exifDataEntries {
+						//Check if the current image index is the same as the one in the current ExifDataReceived instance
+						if imageExifData.FileName == imageName {
+							return imageExifData
+						}
+					}
+					fmt.Println("No EXIF data for " + imageName + " . Function _jsonFinalCompiler()")
+					return ExifDataReceived{}
+				}(imageName)
+				fmt.Printf("Exif Map: %#v\n", exifMap)
+
+				// Append exif data to the category
+				exifMap[category] = append(exifMap[category], imageEXIF)
+			}
+		}
+		jsonMarshal, _ := json.MarshalIndent(exifMap, "", "\t")
+
+		return jsonMarshal, nil
+	}()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return finalJson, nil
 }
 
 // ProcessImageToWebP
+
 // Path is where the image should be outputted. Will append /output/ to the path.
-func ProcessImageToWebP(entryName string, path string) []byte {
+// Saves image to path and outputs EXIF data as []byte
+func ProcessImage(entryName string, path string) ExifDataReceived {
 	fmt.Println("Processing " + entryName)
 	//open the file
 
@@ -145,35 +179,19 @@ func ProcessImageToWebP(entryName string, path string) []byte {
 
 	imageToWEBP(path+"/output/", entryName, imageFile)
 
-	//err = addImageCategory(path+"/output/"+entryName+".webp", "ineedtosleep")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//outputCategory, err := getImageCategory(path + "/output/" + entryName + ".webp")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//println("output category: " + outputCategory)
-	//err = removeImageCategory(path + "/output/" + entryName + ".webp")
+	err = imageFile.Close()
 	//if err != nil {
 	//	return nil
 	//}
-	//outputCategory, err = getImageCategory(path + "/output/" + entryName + ".webp")
-	//println("output category after removal: " + outputCategory)
 
-	err = imageFile.Close()
-	if err != nil {
-		return nil
-	}
-
-	exifJson, err := json.Marshal(exifData)
+	//exifJson, err := json.Marshal(exifData)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println("Done Processing " + entryName)
 
-	return exifJson
+	return exifData
 }
 
 // Path is where it should be outputted, filename is the name of the output file, image is the image to be converted

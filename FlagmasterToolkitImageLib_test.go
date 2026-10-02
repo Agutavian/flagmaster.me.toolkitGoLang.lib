@@ -1,5 +1,10 @@
 package FlagmasterToolkitImageManipulatorLib
 
+import (
+	"os"
+	"testing"
+)
+
 //
 //import (
 //	"fmt"
@@ -15,3 +20,21 @@ package FlagmasterToolkitImageManipulatorLib
 //	}
 //	fmt.Println(percentage)
 //}
+
+func Test_jsonFinalCompiler(t *testing.T) {
+	imagePath := "testImages"
+	imageMap := make(map[string][]string)
+	var testImages []string
+	testImages = append(testImages, "DSCF2216.JPG")
+	imageMap["testing_category"] = testImages
+	results, err := ImageManipulator(imagePath, imageMap)
+	if err != nil {
+		t.Errorf("Error Manipulating ImageManipulator: %v", err)
+	}
+	jsonFile := "testImages/output/TEST_output_exif_data.json"
+	//exifJson, err := json.Marshal(results)
+
+	_, _ = os.Create(jsonFile)
+	err = os.WriteFile(jsonFile, results, 0644)
+
+}

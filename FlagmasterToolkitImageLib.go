@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"image/jpeg"
 	"io"
 	"io/fs"
 	"log"
@@ -15,6 +14,7 @@ import (
 
 	gometadata "github.com/FlavioCFOliveira/GoMetadata"
 	"github.com/FlavioCFOliveira/GoMetadata/xmp"
+	"github.com/disintegration/imaging"
 	"github.com/kolesa-team/go-webp/encoder"
 	"github.com/kolesa-team/go-webp/webp"
 	//"github.com/rwcarlsen/goexif/exif"
@@ -202,21 +202,10 @@ func ProcessImage(entryName string, path string) ([]byte, ExifDataReceived, erro
 // Path is where it should be outputted, filename is the name of the output file, image is the image to be converted
 // Returns compressed File bytes
 func imageToWEBP(path string, filename string, image *os.File) ([]byte, error) {
-	decodedJpeg, err := jpeg.Decode(image)
+	decoded, err := imaging.Decode(image, imaging.AutoOrientation(true))
 	if err != nil {
 		return nil, err
 	}
-
-	//output, err := os.Create(path + filename + ".webp")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//defer func(output *os.File) {
-	//	err := output.Close()
-	//	if err != nil {
-	//
-	//	}
-	//}(output)
 
 	options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 10)
 	if err != nil {
@@ -224,7 +213,7 @@ func imageToWEBP(path string, filename string, image *os.File) ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	if err := webp.Encode(&buf, decodedJpeg, options); err != nil {
+	if err := webp.Encode(&buf, decoded, options); err != nil {
 		return nil, err
 	}
 

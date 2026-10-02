@@ -1,7 +1,9 @@
 package FlagmasterToolkitImageManipulatorLib
 
 import (
+	"log"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -27,7 +29,7 @@ func Test_jsonFinalCompiler(t *testing.T) {
 	var testImages []string
 	testImages = append(testImages, "DSCF2216.JPG")
 	imageMap["testing_category"] = testImages
-	results, err := ImageManipulator(imagePath, imageMap)
+	compressedImagesBytes, finalJson, err := ImageManipulator(imagePath, imageMap)
 	if err != nil {
 		t.Errorf("Error Manipulating ImageManipulator: %v", err)
 	}
@@ -35,6 +37,14 @@ func Test_jsonFinalCompiler(t *testing.T) {
 	//exifJson, err := json.Marshal(results)
 
 	_, _ = os.Create(jsonFile)
-	err = os.WriteFile(jsonFile, results, 0644)
+	err = os.WriteFile(jsonFile, finalJson, 0644)
+
+	for fileName, data := range compressedImagesBytes {
+		outPath := filepath.Join("testImages/output/", fileName+".webp")
+		if err := os.WriteFile(outPath, data, 0o644); err != nil {
+			log.Printf("writing %s: %v", outPath, err)
+			continue
+		}
+	}
 
 }

@@ -1,6 +1,7 @@
 package FlagmasterToolkitImageManipulatorLib
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -59,23 +60,23 @@ type ImageDimensionsStruct struct {
 // jsonFileName: JSON File name. Recommended to include ".json" at the end
 //
 // Return:
-//
+// map[string][]byte: Compressed Images map with key = filename, byte = compressedImage bytes
 // []byte: Final JSON as bytes (already marshalled). Nil if error
 // error: Error if applicable, nil otherwise
 //
 // INFO:
 //
 // Function implements GoRoutines to loop through images and process them.
-// Personal note: Returns JSON rather than creating it because this doesn't implement categories
-func ImageManipulator(imagesPath string, imageMap map[string][]string) ([]byte, error) {
+
+func ImageManipulator(imagesPath string, imageMap map[string][]string) (compressedImagesBytes map[string][]byte, FinalJson []byte, error error) {
 	myFs := os.DirFS(imagesPath)          // root the FS at the directory
 	entries, err := fs.ReadDir(myFs, ".") // "." = the root of that FS
 	if err != nil {
-		return nil, fmt.Errorf("reading images dir %q: %w", imagesPath, err)
+		return nil, nil, fmt.Errorf("reading images dir %q: %w", imagesPath, err)
 	}
 
 	var exifDataEntries []ExifDataReceived
-
+	compressedImages := make(map[string][]byte)
 	var waitGroup sync.WaitGroup
 	var mutex sync.Mutex
 
@@ -88,9 +89,13 @@ func ImageManipulator(imagesPath string, imageMap map[string][]string) ([]byte, 
 		//adds to async group
 		waitGroup.Go(func() {
 			defer waitGroup.Done()
-			result := ProcessImage(entry.Name(), imagesPath)
+			resultBytes, resultExif, err := ProcessImage(entry.Name(), imagesPath)
+			if err != nil {
+				fmt.Printf("Error processing image: %v\n", err)
+			}
 			mutex.Lock()
-			exifDataEntries = append(exifDataEntries, result)
+			exifDataEntries = append(exifDataEntries, resultExif)
+			compressedImages[entry.Name()] = resultBytes
 			mutex.Unlock()
 		})
 		//	test
@@ -104,10 +109,10 @@ func ImageManipulator(imagesPath string, imageMap map[string][]string) ([]byte, 
 
 	//output, err := os.Create(jsonFile)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return finalJson, nil
+	return compressedImages, finalJson, nil
 }
 
 // imageMap is a list of the categories with the image names associated with them
@@ -155,28 +160,30 @@ func _jsonFinalCompiler(imageMap map[string][]string, exifDataEntries []ExifData
 // ProcessImageToWebP
 
 // Path is where the image should be outputted
-// Saves image to path and outputs EXIF data as []byte
-func ProcessImage(entryName string, path string) ExifDataReceived {
+// Compresses image and gets EXIF data. Returns compressed file bytes and outputs EXIF data as ExifDataRecived
+func ProcessImage(entryName string, path string) ([]byte, ExifDataReceived, error) {
 	fmt.Println("Processing " + entryName)
 	//open the file
 
 	imagePath := path + "/" + entryName
 	imageFile, err := os.Open(imagePath)
 	if err != nil {
-		log.Fatal(err)
+		return nil, ExifDataReceived{}, err
 	}
 	exifData, err := GetExifData(entryName, imagePath, imageFile)
 	if err != nil {
-		log.Fatal(err)
+		return nil, ExifDataReceived{}, err
 	}
 
-	//rewinds the cursor so the image can decode proberly
+	//rewinds the cursor so the image can decode properly
 	if _, err := imageFile.Seek(0, io.SeekStart); err != nil {
-		log.Fatal(err)
+		return nil, ExifDataReceived{}, err
 	}
 
-	imageToWEBP(path, entryName, imageFile)
-
+	bytes, err := imageToWEBP(path, entryName, imageFile)
+	if err != nil {
+		return nil, ExifDataReceived{}, err
+	}
 	err = imageFile.Close()
 	//if err != nil {
 	//	return nil
@@ -184,41 +191,46 @@ func ProcessImage(entryName string, path string) ExifDataReceived {
 
 	//exifJson, err := json.Marshal(exifData)
 	if err != nil {
-		log.Fatal(err)
+		return nil, ExifDataReceived{}, err
 	}
 
-	fmt.Println("Done Processing " + entryName)
+	fmt.Println("Done Processing " + entryName + " to WEBP ")
 
-	return exifData
+	return bytes, exifData, nil
 }
 
 // Path is where it should be outputted, filename is the name of the output file, image is the image to be converted
-func imageToWEBP(path string, filename string, image *os.File) {
+// Returns compressed File bytes
+func imageToWEBP(path string, filename string, image *os.File) ([]byte, error) {
 	decodedJpeg, err := jpeg.Decode(image)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	output, err := os.Create(path + filename + ".webp")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func(output *os.File) {
-		err := output.Close()
-		if err != nil {
-
-		}
-	}(output)
+	//output, err := os.Create(path + filename + ".webp")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//defer func(output *os.File) {
+	//	err := output.Close()
+	//	if err != nil {
+	//
+	//	}
+	//}(output)
 
 	options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 10)
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 
-	if err := webp.Encode(output, decodedJpeg, options); err != nil {
-		log.Fatalln(err)
+	var buf bytes.Buffer
+	if err := webp.Encode(&buf, decodedJpeg, options); err != nil {
+		return nil, err
 	}
 
+	fmt.Println("Saved image to: " + path + filename + ".webp")
+
+	return buf.Bytes(), nil
 }
 
 // library info: https://github.com/FlavioCFOliveira/GoMetadata

@@ -68,8 +68,6 @@ type ImageDimensionsStruct struct {
 //
 // Function implements GoRoutines to loop through images and process them.
 // Personal note: Returns JSON rather than creating it because this doesn't implement categories
-//
-// TODO: Make it so that the JSON is with the maps
 func ImageManipulator(imagesPath string, imageMap map[string][]string) ([]byte, error) {
 	// I guess this is where it starts off from?
 	myFs := os.DirFS(".")
@@ -113,7 +111,6 @@ func ImageManipulator(imagesPath string, imageMap map[string][]string) ([]byte, 
 	return finalJson, nil
 }
 
-// TODO: DO JSON WORK
 // imageMap is a list of the categories with the image names associated with them
 // exifDataEntries is the list of already-compiled ExifDataReceived structs
 func _jsonFinalCompiler(imageMap map[string][]string, exifDataEntries []ExifDataReceived) ([]byte, error) {
@@ -126,7 +123,6 @@ func _jsonFinalCompiler(imageMap map[string][]string, exifDataEntries []ExifData
 		for category, listOfImagesInCategory := range imageMap {
 
 			// Loop through all the images in the category
-			//TODO: CHECK IF THIS LOOP EXIF PART WORKS
 			for _, imageName := range listOfImagesInCategory {
 				//Get the exif data for this image specifically
 				imageEXIF := func(imageName string) ExifDataReceived {

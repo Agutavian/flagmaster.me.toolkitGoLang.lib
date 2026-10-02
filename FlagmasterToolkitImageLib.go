@@ -93,6 +93,7 @@ func ImageManipulator(imagesPath string, imageMap map[string][]string) ([]byte, 
 			exifDataEntries = append(exifDataEntries, result)
 			mutex.Unlock()
 		})
+		//	test
 	}
 	waitGroup.Wait()
 	fmt.Printf("Exif making sure: %#v\n", exifDataEntries)

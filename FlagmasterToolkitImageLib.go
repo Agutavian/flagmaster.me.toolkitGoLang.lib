@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/fs"
 	"log"
-	"math"
 	"os"
 	"strings"
 	"sync"
@@ -69,11 +68,10 @@ type ImageDimensionsStruct struct {
 // Function implements GoRoutines to loop through images and process them.
 // Personal note: Returns JSON rather than creating it because this doesn't implement categories
 func ImageManipulator(imagesPath string, imageMap map[string][]string) ([]byte, error) {
-	// I guess this is where it starts off from?
-	myFs := os.DirFS(".")
-	entries, err := fs.ReadDir(myFs, imagesPath)
+	myFs := os.DirFS(imagesPath)          // root the FS at the directory
+	entries, err := fs.ReadDir(myFs, ".") // "." = the root of that FS
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("reading images dir %q: %w", imagesPath, err)
 	}
 
 	var exifDataEntries []ExifDataReceived
@@ -155,7 +153,7 @@ func _jsonFinalCompiler(imageMap map[string][]string, exifDataEntries []ExifData
 
 // ProcessImageToWebP
 
-// Path is where the image should be outputted. Will append /output/ to the path.
+// Path is where the image should be outputted
 // Saves image to path and outputs EXIF data as []byte
 func ProcessImage(entryName string, path string) ExifDataReceived {
 	fmt.Println("Processing " + entryName)
@@ -167,13 +165,16 @@ func ProcessImage(entryName string, path string) ExifDataReceived {
 		log.Fatal(err)
 	}
 	exifData, err := GetExifData(entryName, imagePath, imageFile)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//rewinds the cursor so the image can decode proberly
 	if _, err := imageFile.Seek(0, io.SeekStart); err != nil {
 		log.Fatal(err)
 	}
 
-	imageToWEBP(path+"/output/", entryName, imageFile)
+	imageToWEBP(path, entryName, imageFile)
 
 	err = imageFile.Close()
 	//if err != nil {
@@ -254,18 +255,18 @@ func GetExifData(imageName string, imagePath string, imageFile *os.File) (ExifDa
 		if err != nil {
 			MakeStr = "Unknown"
 		}
+		//
+		//var ModelStr string
+		//ModelStr = exifMetadata.Make()
+		//if err != nil {
+		//	ModelStr = "Unknown"
+		//}
 
-		var ModelStr string
-		ModelStr = exifMetadata.Make()
-		if err != nil {
-			ModelStr = "Unknown"
-		}
+		//if MakeStr == "Unknown" {
+		//	return "Unknown"
+		//}
 
-		if MakeStr == "Unknown" || ModelStr == "Unknown" {
-			return "Unknown"
-		}
-
-		return MakeStr + " " + ModelStr
+		return MakeStr
 
 	}()
 
@@ -337,7 +338,7 @@ func GetExifData(imageName string, imagePath string, imageFile *os.File) (ExifDa
 	exifData.FStopValue = func() float64 {
 		FStop, ok := exifMetadata.FNumber()
 		if !ok {
-			return math.NaN()
+			return 0
 		}
 		//FStopNumerator, FStopDenominator, err := FStopTiff.Rat2(0) // retrieve first (hopefully only...) value from list
 		//if FStopNumerator == 0 || FStopDenominator == 0 || err != nil {
